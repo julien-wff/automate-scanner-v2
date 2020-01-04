@@ -31,7 +31,7 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 100);
+    flowList = flowList.slice(0, 2);
     let stats = {
         totalFlowsCount: flowList.length,
         isProcessComplete: false,
@@ -50,21 +50,20 @@ const config = require('./config');
 
         const flowId = inputId || flowList.shift();
         const child = fork('./query-flow.js');
-        child.send({ flowId });
+        child.send({ flowId, action: 'start-request' });
 
         child.on('message', message => {
 
-            if (message.status === 'complete') {
+            if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
+                console.log(message.data);
                 child.disconnect();
                 startWorker();
                 displayStatus();
-            } else if (message.status === 'data' && message.data) {
-
             }
 
         });
 
-        child.on('exit', code => {
+        child.on('exit', code => {  // When an error occurs on the worker
             if (code !== 0) {
                 console.error(`Worker error, exit code: ${code}`);
                 startWorker(flowId);
@@ -74,6 +73,7 @@ const config = require('./config');
     }
 
     function displayStatus() {
+        if (stats.isProcessComplete) return;
         console.clear();
         console.log(`${stats.totalFlowsCount - flowList.length}/${stats.totalFlowsCount}`);
     }
@@ -83,6 +83,7 @@ const config = require('./config');
         stats.isProcessComplete = true;
         console.clear();
         console.log('process end !');
+        process.exit(0);
     }
 
     // process.exit(0);

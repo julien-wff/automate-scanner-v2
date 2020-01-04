@@ -102,11 +102,6 @@ module.exports.Mysql = class {
 module.exports.Mongo = class {
 
 
-    constructor() {
-        this.db = undefined;
-    }
-
-
     /**
      * Establish the connection with the database
      * @param uri {string} The database URI

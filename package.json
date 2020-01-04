@@ -14,7 +14,6 @@
   "devDependencies": {
     "@types/mongodb": "^3.3.14",
     "@types/mysql": "^2.15.8",
-    "@types/numeral": "^0.0.26",
-    "@types/request": "^2.48.4"
+    "@types/numeral": "^0.0.26"
   }
 }
