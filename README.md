@@ -22,7 +22,6 @@
 
 ### TODO
 
-- Make the request in `query-flow.js`
 - Save the queried data in the DB
 - Make a backup file of the DB when finished
 - Split the DB management in a separated node
