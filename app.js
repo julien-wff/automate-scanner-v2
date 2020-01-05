@@ -33,7 +33,7 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 300);
+    // flowList = flowList.slice(0, 300);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
@@ -81,12 +81,24 @@ const config = require('./config');
     // Workers displays
     function displayStatus() {
         console.clear();
+        let percentage = Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2;
+        console.log(displayBar());
         console.log(`Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`);
-        console.log(`Progression: ${Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2} %`);
+        console.log(`Progression: ${percentage} %`);
         console.log(`Time elapsed: ${ms(Date.now() - stats.startTime)}`);
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
         console.log(`Speed: ${Math.round(OPperSec * 1e2) / 1e2} flows / second`);
         console.log(`Time remaining: ${ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000)}`);
+
+        function displayBar() {
+            let wSize = process.stdout.columns - 2;
+            let fullChars = Math.floor(wSize * percentage / 100);
+            let display = '[';
+            display += '#'.repeat(fullChars);
+            display += '-'.repeat(wSize - fullChars);
+            return display + ']';
+        }
+
     }
 
     function processEnd() {
