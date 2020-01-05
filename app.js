@@ -12,6 +12,13 @@ const config = require('./config');
 // Core
 (async function () {
 
+    // Set window title
+    if (process.platform === 'win32') {
+		process.title = 'Automate scanner v2';
+	} else {
+		process.stdout.write('\x1b]2;Automate scanner v2\x1b\x5c');
+	}
+
     // Selecting database type
     let Db;
     if (config.dbType === 'sql') {
