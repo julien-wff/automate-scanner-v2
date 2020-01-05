@@ -1,7 +1,9 @@
 // Modules
 const Database = require('./databases/Database');
 const getFlowList = require('./get-flow-list');
+const saveData = require('./save-data');
 const { fork } = require('child_process');
+const ms = require('ms');
 
 // Config
 const config = require('./config');
@@ -31,11 +33,12 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 2);
+    flowList = flowList.slice(0, 300);
     let stats = {
         totalFlowsCount: flowList.length,
+        remainingFlows: flowList.length,
         isProcessComplete: false,
-        startTime: Date.now()
+        startTime: Date.now(),
     };
 
 
@@ -43,26 +46,29 @@ const config = require('./config');
     for (let i = 0; i < config.cores; i++) {
         startWorker();
     }
+    const dataSaver = new saveData(Db);
 
+
+    // Workers core
     function startWorker(inputId) {
 
-        if (flowList.length === 0 && !inputId) return processEnd();
+        if (stats.remainingFlows === 0 && !inputId) return processEnd();
 
         const flowId = inputId || flowList.shift();
         const child = fork('./query-flow.js');
         child.send({ flowId, action: 'start-request' });
 
-        child.on('message', message => {
+        child.on('message', async message => {
 
             if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
-                console.log(message.data);
+                await dataSaver.save(message.data);
                 child.disconnect();
+                stats.remainingFlows--;
                 startWorker();
                 displayStatus();
             }
 
         });
-
         child.on('exit', code => {  // When an error occurs on the worker
             if (code !== 0) {
                 console.error(`Worker error, exit code: ${code}`);
@@ -72,10 +78,13 @@ const config = require('./config');
 
     }
 
+    // Workers displays
     function displayStatus() {
         if (stats.isProcessComplete) return;
         console.clear();
-        console.log(`${stats.totalFlowsCount - flowList.length}/${stats.totalFlowsCount}`);
+        console.log(`Flows stored : ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`);
+        console.log(`Progression : ${Math.round(stats.totalFlowsCount - stats.remainingFlows / stats.totalFlowsCount * 10000) / 100} %`);
+        console.log();
     }
 
     function processEnd() {
@@ -85,7 +94,5 @@ const config = require('./config');
         console.log('process end !');
         process.exit(0);
     }
-
-    // process.exit(0);
 
 })();

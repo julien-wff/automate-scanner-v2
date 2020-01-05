@@ -20,5 +20,5 @@ module.exports = {
     },
 
     // Simultaneous flow requests
-    cores: 2,
+    cores: 8,
 };

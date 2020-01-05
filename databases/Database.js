@@ -1,5 +1,6 @@
 const mysql = require('mysql');
 const MongoClient = require('mongodb').MongoClient;
+const utf8 = require('utf8');
 
 
 module.exports.Mysql = class {
@@ -95,6 +96,56 @@ module.exports.Mysql = class {
         });
     }
 
+
+    /**
+     * Transform a timestamp into a valid MySql date string
+     * @param timestamp The timestamp to convert
+     * @returns {string} The valid MySql date string
+     */
+    mySqlDateTime(timestamp) {
+        let date = new Date(timestamp);
+        return `${date.toISOString().split('T')[0]} ${date.toTimeString().split(' ')[0]}`;
+    }
+
+
+    /**
+     * Add data to the DB
+     * @param data {Array<*>} The data to add
+     * @returns {Promise<void>}
+     */
+    async addData(data) {
+        await this.makeQuery(
+            'INSERT INTO `automate-scanner`.flows(`id`, `user_id`, `category_id`, `title`, `description`, `downloads`, `featured`, `created`, `modified`, `upload-version`, `data-version`, `base64-data`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                data['id'],
+                data['user']['id'],
+                data['category']['id'],
+                utf8.encode(data['title']),
+                utf8.decode(data['description']),
+                data['downloads'],
+                data['featured'] ? 1 : 0,
+                this.mySqlDateTime(data['created']),
+                this.mySqlDateTime(data['modified']),
+                data['uploadVersion'],
+                data['dataVersion'],
+                data['b64Data']
+            ]
+        );
+        for await (const review of data['reviews']) {
+            await this.makeQuery(
+                'INSERT INTO `automate-scanner`.reviews(`id`, `user_id`, `flow_id`, `comment`,  `rating`, `created`, `modified`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [
+                    review['id'],
+                    review['user']['id'],
+                    data['id'],
+                    utf8.encode(review['comment']),
+                    review['rating'],
+                    this.mySqlDateTime(review['created']),
+                    this.mySqlDateTime(review['modified'])
+                ]
+            );
+        }
+    }
 
 };
 
