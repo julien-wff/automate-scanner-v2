@@ -1,6 +1,5 @@
 const mysql = require('mysql');
 const MongoClient = require('mongodb').MongoClient;
-const utf8 = require('utf8');
 
 
 module.exports.Mysql = class {
@@ -120,8 +119,8 @@ module.exports.Mysql = class {
                 data['id'],
                 data['user']['id'],
                 data['category']['id'],
-                utf8.encode(data['title']),
-                utf8.decode(data['description']),
+                data['title'],
+                data['description'],
                 data['downloads'],
                 data['featured'] ? 1 : 0,
                 this.mySqlDateTime(data['created']),
@@ -138,7 +137,7 @@ module.exports.Mysql = class {
                     review['id'],
                     review['user']['id'],
                     data['id'],
-                    utf8.encode(review['comment']),
+                    review['comment'],
                     review['rating'],
                     this.mySqlDateTime(review['created']),
                     this.mySqlDateTime(review['modified'])

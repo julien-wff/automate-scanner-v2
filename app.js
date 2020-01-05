@@ -64,8 +64,8 @@ const config = require('./config');
                 await dataSaver.save(message.data);
                 child.disconnect();
                 stats.remainingFlows--;
-                startWorker();
                 displayStatus();
+                startWorker();
             }
 
         });
@@ -80,18 +80,19 @@ const config = require('./config');
 
     // Workers displays
     function displayStatus() {
-        if (stats.isProcessComplete) return;
         console.clear();
-        console.log(`Flows stored : ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`);
-        console.log(`Progression : ${Math.round(stats.totalFlowsCount - stats.remainingFlows / stats.totalFlowsCount * 10000) / 100} %`);
-        console.log();
+        console.log(`Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`);
+        console.log(`Progression: ${Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2} %`);
+        console.log(`Time elapsed: ${ms(Date.now() - stats.startTime)}`);
+        let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
+        console.log(`Speed: ${Math.round(OPperSec * 1e2) / 1e2} flows / second`);
+        console.log(`Time remaining: ${ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000)}`);
     }
 
     function processEnd() {
         if (stats.isProcessComplete) return;
         stats.isProcessComplete = true;
-        console.clear();
-        console.log('process end !');
+        console.log('\n\nProcess end !');
         process.exit(0);
     }
 
