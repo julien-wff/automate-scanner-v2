@@ -39,7 +39,7 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 50);
+    // flowList = flowList.slice(0, 50);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
@@ -47,6 +47,22 @@ const config = require('./config');
         startTime: Date.now(),
         pendingSave: 0
     };
+
+
+    // Setup module
+    const addInDB = fork('./tasks/save-db.js', [], { detached: true });
+    await new Promise(resolve => {
+        addInDB.on('message', message => {
+            if (message.type === 'db-ready') {
+                console.log('Saving DB ready');
+                resolve();
+            }
+        });
+    });
+    addInDB.on('message', message => {
+        if (message.type === 'done')
+            stats.pendingSave--;
+    });
 
 
     // Managing workers
@@ -84,12 +100,7 @@ const config = require('./config');
 
         function saveData(data) {
             stats.pendingSave++;
-            const child = fork('./tasks/save-db.js', [], { detached: true });
-            child.send({ type: 'save', data });
-            child.on('message', message => {
-                if (message.type === 'done')
-                    stats.pendingSave--;
-            });
+            addInDB.send({ type: 'save', data });
         }
 
     }

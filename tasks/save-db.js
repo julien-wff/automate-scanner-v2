@@ -1,27 +1,30 @@
 const config = require('../config');
 const Database = require('../databases/Database');
 
+(async function () {
 
-process.on('message', async message => {
-    if (message.type === 'save' && message.data) {
+    let Db;
+    if (config.dbType === 'sql') {
 
-        const dataToSave = message.data;
+        Db = new Database.Mysql();
+        await Db.connect(config.mysql.host, config.mysql.user, config.mysql.password, config.mysql.dbName);
 
-        let Db;
-        if (config.dbType === 'sql') {
+    } else if (config.dbType === 'mongo') {
 
-            Db = new Database.Mysql();
-            await Db.connect(config.mysql.host, config.mysql.user, config.mysql.password, config.mysql.dbName);
+        Db = new Database.Mongo();
+        await Db.connect(config.mongo.uri, config.mongo.options, config.mongo.dbName);
 
-        } else if (config.dbType === 'mongo') {
-
-            Db = new Database.Mongo();
-            await Db.connect(config.mongo.uri, config.mongo.options, config.mongo.dbName);
-
-        }
-
-        await Db.addData(dataToSave);
-
-        process.send({ type: 'done' });
     }
-});
+
+    process.send({ type: 'db-ready' });
+
+    process.on('message', async message => {
+        if (message.type === 'save' && message.data) {
+            await Db.addData(message.data);
+            if (process.connected)
+                process.send({ type: 'done' });
+        }
+    });
+
+})();
+
