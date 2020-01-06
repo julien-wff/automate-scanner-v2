@@ -1,6 +1,6 @@
 // Modules
 const Database = require('./databases/Database');
-const getFlowList = require('./get-flow-list');
+const getFlowList = require('./tasks/get-flow-list');
 const saveData = require('./save-data');
 const { fork } = require('child_process');
 const ms = require('ms');
@@ -62,7 +62,7 @@ const config = require('./config');
         if (stats.remainingFlows === 0 && !inputId) return processEnd();
 
         const flowId = inputId || flowList.shift();
-        const child = fork('./query-flow.js');
+        const child = fork('./tasks/query-flow.js');
         child.send({ flowId, action: 'start-request' });
 
         child.on('message', async message => {
@@ -94,7 +94,7 @@ const config = require('./config');
         console.log(`Progression: ${percentage} %`);
         console.log(`Time elapsed: ${ms(Date.now() - stats.startTime)}`);
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
-        console.log(`Speed: ${Math.round(OPperSec * 1e2) / 1e2} flows / second`);
+        console.log(`Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second`);
         console.log(`Time remaining: ${ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000)}`);
 
         function displayBar() {
