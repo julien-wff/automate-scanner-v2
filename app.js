@@ -1,7 +1,6 @@
 // Modules
 const Database = require('./databases/Database');
 const getFlowList = require('./tasks/get-flow-list');
-const saveData = require('./save-data');
 const { fork } = require('child_process');
 const ms = require('ms');
 
@@ -14,10 +13,10 @@ const config = require('./config');
 
     // Set window title
     if (process.platform === 'win32') {
-		process.title = 'Automate scanner v2';
-	} else {
-		process.stdout.write('\x1b]2;Automate scanner v2\x1b\x5c');
-	}
+        process.title = 'Automate scanner v2';
+    } else {
+        process.stdout.write('\x1b]2;Automate scanner v2\x1b\x5c');
+    }
 
     // Selecting database type
     let Db;
@@ -40,12 +39,13 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    // flowList = flowList.slice(0, 300);
+    flowList = flowList.slice(0, 50);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
         isProcessComplete: false,
         startTime: Date.now(),
+        pendingSave: 0
     };
 
 
@@ -53,7 +53,6 @@ const config = require('./config');
     for (let i = 0; i < config.cores; i++) {
         startWorker();
     }
-    const dataSaver = new saveData(Db);
 
 
     // Workers core
@@ -68,7 +67,7 @@ const config = require('./config');
         child.on('message', async message => {
 
             if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
-                await dataSaver.save(message.data);
+                saveData(message.data);
                 child.disconnect();
                 stats.remainingFlows--;
                 displayStatus();
@@ -83,19 +82,34 @@ const config = require('./config');
             }
         });
 
+        function saveData(data) {
+            stats.pendingSave++;
+            const child = fork('./tasks/save-db.js', [], { detached: true });
+            child.send({ type: 'save', data });
+            child.on('message', message => {
+                if (message.type === 'done')
+                    stats.pendingSave--;
+            });
+        }
+
     }
+
+    let displayClock;
 
     // Workers displays
     function displayStatus() {
-        console.clear();
+        if (!displayClock) displayClock = setInterval(displayStatus, 500);
         let percentage = Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2;
-        console.log(displayBar());
-        console.log(`Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`);
-        console.log(`Progression: ${percentage} %`);
-        console.log(`Time elapsed: ${ms(Date.now() - stats.startTime)}`);
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
-        console.log(`Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second`);
-        console.log(`Time remaining: ${ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000)}`);
+        console.clear();
+        console.log(`${displayBar()}
+Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}
+Progression: ${percentage} %
+Time elapsed: ${ms(Date.now() - stats.startTime)}
+Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second
+Time remaining: ${ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000)}
+Pending DB saves: ${stats.pendingSave}
+        `);
 
         function displayBar() {
             let wSize = process.stdout.columns - 2;
@@ -110,6 +124,7 @@ const config = require('./config');
 
     function processEnd() {
         if (stats.isProcessComplete) return;
+        clearTimeout(displayClock);
         stats.isProcessComplete = true;
         console.log('\n\nProcess end !');
         process.exit(0);
