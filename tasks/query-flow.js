@@ -1,6 +1,7 @@
 const request = require('request');
 const utf8 = require('utf8');
 
+process.send({ type: 'ready' });
 
 process.on('message', async message => {
 

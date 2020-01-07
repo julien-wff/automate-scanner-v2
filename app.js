@@ -72,37 +72,51 @@ const config = require('./config');
 
     // Managing workers
     for (let i = 0; i < config.cores; i++) {
-        startWorker();
+        // startWorker();
+        manageWorker(i);
     }
 
 
-    // Workers core
-    function startWorker(inputId) {
+    async function manageWorker(workerId) {
 
-        if (stats.remainingFlows === 0 && !inputId) return;
-
-        const flowId = inputId || flowList.shift();
-        const child = fork('./tasks/query-flow.js');
-        child.send({ flowId, action: 'start-request' });
-
-        child.on('message', async message => {
-
-            if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
-                saveData(message.data); // Save the data to the DB
-                child.disconnect();     // Disconnect the worker
-                stats.remainingFlows--; // Decrease the remaning flows count
-                displayStatus();        // Update the display
-                startWorker();          // Start another worker
-            }
-
+        const worker = fork('./tasks/query-flow.js');
+        await new Promise(resolve => {
+            worker.on('message', message => {
+                if (message.type === 'ready')
+                    resolve();
+            });
         });
-        child.on('exit', code => {  // When an error occurs on the worker
-            if (code !== 0) {
-                console.error(`Worker error, exit code: ${code}`);
-                startWorker(flowId);    // Start another worker with the same flow ID
-                stats.errors++;
-            }
-        });
+
+        console.log(`Starting worker #${workerId}`);
+
+        queryFlow();
+
+        function queryFlow() {
+
+            if (stats.remainingFlows <= 1) return;
+
+            const flowId = flowList.shift();    // get the next flow ID and remove it from the list
+            worker.send({ flowId, action: 'start-request' });
+
+            worker.on('message', message => {
+
+                if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
+                    saveData(message.data); // Save the data to the DB
+                    stats.remainingFlows--; // Decrease the remaning flows count
+                    worker.removeAllListeners('message');   // Remove the listener
+                    queryFlow();            // Start querying
+                    displayStatus();        // Update the display
+                }
+
+            });
+            worker.on('exit', code => {  // When an error occurs on the worker
+                if (code !== 0) {
+                    console.error(`Worker error, exit code: ${code}`);
+                    worker.send({ flowId, action: 'start-request' });   // Resend the flow to query
+                    stats.errors++;
+                }
+            });
+        }
 
         function saveData(data) {
             stats.pendingSave++;
@@ -117,14 +131,19 @@ const config = require('./config');
         if (!displayClock) displayClock = setInterval(displayStatus, 1000);
         let percentage = Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2;
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
-        let remainTime;
+        let remainTime, progressBar;
         try {   // ms can throw an error sometimes
             remainTime = ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000);
         } catch (e) {
             remainTime = '<unavailable>';
         }
+        try {   // ms can throw an error sometimes
+            progressBar = displayBar();
+        } catch (e) {
+            progressBar = '';
+        }
         console.clear();
-        console.log(`${displayBar()}
+        console.log(`${progressBar}
 Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}
 Progression: ${percentage} %
 Time elapsed: ${ms(Date.now() - stats.startTime)}
@@ -134,7 +153,7 @@ Pending DB saves: ${stats.pendingSave}
 Query errors: ${stats.errors}
         `);
 
-        if (stats.remainingFlows === 0 && stats.pendingSave === 0)
+        if (stats.remainingFlows <= 0 && stats.pendingSave <= 0)
             processEnd();
 
         function displayBar() {
