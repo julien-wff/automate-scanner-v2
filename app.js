@@ -46,6 +46,7 @@ const config = require('./config');
         isProcessComplete: false,
         startTime: Date.now(),
         pendingSave: 0,
+        activeQueries: 0,
         errors: 0
     };
     let displayClock;
@@ -71,51 +72,60 @@ const config = require('./config');
 
 
     // Managing workers
+    let workers = [];
     for (let i = 0; i < config.cores; i++) {
-        // startWorker();
+        // noinspection ES6MissingAwait
         manageWorker(i);
     }
 
 
     async function manageWorker(workerId) {
 
-        const worker = fork('./tasks/query-flow.js');
-        await new Promise(resolve => {
-            worker.on('message', message => {
-                if (message.type === 'ready')
-                    resolve();
-            });
-        });
+        let flowId;
+        await spawnWorker();
 
-        console.log(`Starting worker #${workerId}`);
+        async function spawnWorker() {
+            workers[workerId] = fork('./tasks/query-flow.js');
+            console.log(`Starting worker #${workerId} with PID ${workers[workerId].pid}`);
+            await new Promise(resolve => {  // Wait until the worker is ready
+                workers[workerId].on('message', message => {
+                    if (message.type === 'ready')
+                        resolve();
+                });
+            });
+
+            workers[workerId].on('exit', async code => {  // When an error occurs on the worker
+                if (code !== 0) {
+                    console.error(`Worker error on flow #${flowId}, exit code: ${code}`);
+                    stats.errors++;
+                    stats.activeQueries--;
+                    workers[workerId].removeAllListeners('exit');
+                    workers[workerId].removeAllListeners('message');
+                    await spawnWorker();
+                    workers[workerId].send({ flowId, action: 'start-request' });   // Resend the flow to query
+                    stats.activeQueries++;
+                }
+            });
+
+            workers[workerId].on('message', message => {
+                if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
+                    saveData(message.data); // Save the data to the DB
+                    stats.remainingFlows--; // Decrease the remaning flows count
+                    stats.activeQueries--;  // Indicates that a query is stopped
+                    queryFlow();            // Start querying
+                    displayStatus();        // Update the display
+                }
+            });
+
+        }
 
         queryFlow();
 
         function queryFlow() {
-
             if (stats.remainingFlows <= 1) return;
-
-            const flowId = flowList.shift();    // get the next flow ID and remove it from the list
-            worker.send({ flowId, action: 'start-request' });
-
-            worker.on('message', message => {
-
-                if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
-                    saveData(message.data); // Save the data to the DB
-                    stats.remainingFlows--; // Decrease the remaning flows count
-                    worker.removeAllListeners('message');   // Remove the listener
-                    queryFlow();            // Start querying
-                    displayStatus();        // Update the display
-                }
-
-            });
-            worker.on('exit', code => {  // When an error occurs on the worker
-                if (code !== 0) {
-                    console.error(`Worker error, exit code: ${code}`);
-                    worker.send({ flowId, action: 'start-request' });   // Resend the flow to query
-                    stats.errors++;
-                }
-            });
+            flowId = flowList.shift();    // get the next flow ID and remove it from the list
+            workers[workerId].send({ flowId, action: 'start-request' });
+            stats.activeQueries++;
         }
 
         function saveData(data) {
@@ -137,7 +147,7 @@ const config = require('./config');
         } catch (e) {
             remainTime = '<unavailable>';
         }
-        try {   // ms can throw an error sometimes
+        try {   // progress bar throws error when a invalid data is provided
             progressBar = displayBar();
         } catch (e) {
             progressBar = '';
@@ -150,6 +160,7 @@ Time elapsed: ${ms(Date.now() - stats.startTime)}
 Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second
 Time remaining: ${remainTime}
 Pending DB saves: ${stats.pendingSave}
+Active queries: ${stats.activeQueries}
 Query errors: ${stats.errors}
         `);
 
@@ -168,8 +179,10 @@ Query errors: ${stats.errors}
     }
 
     function processEnd() {
-        clearTimeout(displayClock);
-        addInDB.send({ type: 'shutdown' });
+        clearTimeout(displayClock); // Stop the display
+        for (let worker of workers) // Stop workers
+            worker.disconnect();
+        addInDB.send({ type: 'shutdown' }); // Stop the DB worker
         console.log('\n\nProcess end !');
         process.exit(0);
     }

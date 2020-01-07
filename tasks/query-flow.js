@@ -1,8 +1,6 @@
 const request = require('request');
 const utf8 = require('utf8');
 
-process.send({ type: 'ready' });
-
 process.on('message', async message => {
 
     if (message.action === 'start-request' && message.flowId) {   // Request all the flow data
@@ -35,6 +33,7 @@ process.on('message', async message => {
 
 });
 
+process.send({ type: 'ready' });    // Sending ready to the parent
 
 async function makeRequest(path, json) {
     const requestOptions = {
