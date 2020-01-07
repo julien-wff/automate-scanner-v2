@@ -1,6 +1,6 @@
 {
   "name": "automate-scanner-v2",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "main": "app.js",
   "license": "MIT",
   "author": "cefadrom",

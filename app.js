@@ -39,14 +39,16 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    // flowList = flowList.slice(0, 50);
+    flowList = flowList.slice(0, 100);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
         isProcessComplete: false,
         startTime: Date.now(),
-        pendingSave: 0
+        pendingSave: 0,
+        errors: 0
     };
+    let displayClock;
 
 
     // Setup module
@@ -60,8 +62,11 @@ const config = require('./config');
         });
     });
     addInDB.on('message', message => {
-        if (message.type === 'done')
+        if (message.type === 'done') {
             stats.pendingSave--;
+            displayStatus();
+        }
+
     });
 
 
@@ -74,7 +79,7 @@ const config = require('./config');
     // Workers core
     function startWorker(inputId) {
 
-        if (stats.remainingFlows === 0 && !inputId) return processEnd();
+        if (stats.remainingFlows === 0 && !inputId) return;
 
         const flowId = inputId || flowList.shift();
         const child = fork('./tasks/query-flow.js');
@@ -83,18 +88,19 @@ const config = require('./config');
         child.on('message', async message => {
 
             if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
-                saveData(message.data);
-                child.disconnect();
-                stats.remainingFlows--;
-                displayStatus();
-                startWorker();
+                saveData(message.data); // Save the data to the DB
+                child.disconnect();     // Disconnect the worker
+                stats.remainingFlows--; // Decrease the remaning flows count
+                displayStatus();        // Update the display
+                startWorker();          // Start another worker
             }
 
         });
         child.on('exit', code => {  // When an error occurs on the worker
             if (code !== 0) {
                 console.error(`Worker error, exit code: ${code}`);
-                startWorker(flowId);
+                startWorker(flowId);    // Start another worker with the same flow ID
+                stats.errors++;
             }
         });
 
@@ -105,22 +111,31 @@ const config = require('./config');
 
     }
 
-    let displayClock;
 
     // Workers displays
     function displayStatus() {
-        if (!displayClock) displayClock = setInterval(displayStatus, 500);
+        if (!displayClock) displayClock = setInterval(displayStatus, 1000);
         let percentage = Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2;
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
+        let remainTime;
+        try {   // ms can throw an error sometimes
+            remainTime = ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000);
+        } catch (e) {
+            remainTime = '<unavailable>';
+        }
         console.clear();
         console.log(`${displayBar()}
 Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}
 Progression: ${percentage} %
 Time elapsed: ${ms(Date.now() - stats.startTime)}
 Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second
-Time remaining: ${ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000)}
+Time remaining: ${remainTime}
 Pending DB saves: ${stats.pendingSave}
+Query errors: ${stats.errors}
         `);
+
+        if (stats.remainingFlows === 0 && stats.pendingSave === 0)
+            processEnd();
 
         function displayBar() {
             let wSize = process.stdout.columns - 2;
@@ -134,9 +149,8 @@ Pending DB saves: ${stats.pendingSave}
     }
 
     function processEnd() {
-        if (stats.isProcessComplete) return;
         clearTimeout(displayClock);
-        stats.isProcessComplete = true;
+        addInDB.send({ type: 'shutdown' });
         console.log('\n\nProcess end !');
         process.exit(0);
     }

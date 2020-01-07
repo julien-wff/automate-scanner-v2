@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="automate-scanner@localhost" uuid="726fcb16-a666-40f4-a8d6-8f063f09efe5">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://localhost:3306/automate-scanner</jdbc-url>
+      <driver-properties>
+        <property name="serverTimezone" value="Europe/Paris" />
+      </driver-properties>
+    </data-source>
+  </component>
+</project>

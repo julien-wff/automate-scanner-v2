@@ -23,6 +23,9 @@ const Database = require('../databases/Database');
             await Db.addData(message.data);
             if (process.connected)
                 process.send({ type: 'done' });
+        } else if (message.type === 'shutdown') {
+            await Db.disconnect();
+            process.exit(0);
         }
     });
 

@@ -114,7 +114,7 @@ module.exports.Mysql = class {
      */
     async addData(data) {
         await this.makeQuery(
-            'INSERT INTO `automate-scanner`.flows(`id`, `user_id`, `category_id`, `title`, `description`, `downloads`, `featured`, `created`, `modified`, `upload-version`, `data-version`, `base64-data`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            `INSERT INTO \`${this.dbName}\`.flows(\`id\`, \`user_id\`, \`category_id\`, \`title\`, \`description\`, \`downloads\`, \`featured\`, \`created\`, \`modified\`, \`upload-version\`, \`data-version\`, \`base64-data\`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 data['id'],
                 data['user']['id'],
@@ -132,7 +132,7 @@ module.exports.Mysql = class {
         );
         for await (const review of data['reviews']) {
             await this.makeQuery(
-                'INSERT INTO `automate-scanner`.reviews(`id`, `user_id`, `flow_id`, `comment`,  `rating`, `created`, `modified`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                `INSERT INTO \`${this.dbName}\`.reviews(\`id\`, \`user_id\`, \`flow_id\`, \`comment\`,  \`rating\`, \`created\`, \`modified\`) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     review['id'],
                     review['user']['id'],
@@ -144,6 +144,19 @@ module.exports.Mysql = class {
                 ]
             );
         }
+    }
+
+
+    /**
+     * Initialisate the db disconnection and await it's finished
+     * @returns {Promise<void>}
+     */
+    async disconnect() {
+        await new Promise(resolve => {
+            this.db.end(() => {
+                resolve();
+            });
+        });
     }
 
 };
