@@ -18,9 +18,7 @@
 ### Run - CLI
 
 - Configure the DB access and the options in the `config.js` file
-    - The DB must exist in Mysql
-    - If the tables "flows" and "reviews" already exist, they will be deleted and recreated during the setup, each time the script starts
-        - This means that the data is lost each time you launch the app
+  - **If a Db with the same name exists, it will be deleted**
 - Start with `node app.js`
 
 ### Run - web interface

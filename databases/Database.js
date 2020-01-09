@@ -24,12 +24,11 @@ module.exports.Mysql = class {
             const db = mysql.createConnection({
                 host,
                 user,
-                password,
-                database: dbName
+                password
             });
             db.connect(err => {
                 if (err) throw err;
-                console.log(`[Sql] Database ${dbName} connected!`);
+                console.log(`[Sql] Server connected on host ${host}`);
                 this.db = db;
                 this.dbName = dbName;
                 resolve(db);
@@ -43,9 +42,8 @@ module.exports.Mysql = class {
      * @returns {Promise<void>}
      */
     async setup() {
-        // Delete old tables
-        await this.deleteTable('flows');
-        await this.deleteTable('reviews');
+        // Prepare the database
+        await this.prepareDatabase();
         // Create new tables
         await this.createTable('flows');
         await this.createTable('reviews');
@@ -63,6 +61,22 @@ module.exports.Mysql = class {
             await this.makeQuery(`DROP TABLE \`${this.dbName}\`.\`${tableName}\``);
             console.log(`[Sql] Table ${tableName} deleted!`);
         }
+    }
+
+
+    /**
+     * Delete the database if it exists and create a new one
+     * @returns {Promise<void>}
+     */
+    async prepareDatabase() {
+        const dbCount = await this.makeQuery(`SHOW DATABASES LIKE '${this.dbName}'`);
+        if (dbCount.length === 1) {
+            console.log(`[Sql] Database '${this.dbName}' found, deleting...`);
+            await this.makeQuery(`DROP DATABASE \`${this.dbName}\``);
+        }
+        await this.makeQuery(`CREATE DATABASE \`${this.dbName}\``);
+        console.log(`[Sql] Database ${this.dbName} created`);
+        await this.makeQuery(`USE \`${this.dbName}\``);
     }
 
 
