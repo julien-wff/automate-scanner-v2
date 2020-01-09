@@ -21,4 +21,9 @@ module.exports = {
 
     // Simultaneous flow requests
     cores: 8,
+
+    // Web server config
+    server: {
+        port: 8080    // The server port
+    }
 };
