@@ -2,4 +2,23 @@ body, html {
     font-family: 'Roboto', sans-serif;
     padding: 0;
     margin: 0;
+    transition: .3s;
+}
+
+.reverted {
+    transform: rotate(-180deg);
+}
+
+#toggle-settings i {
+    transition: .3s;
+}
+
+form input[type="number"] {
+    -moz-appearance:textfield;
+}
+
+form input::-webkit-outer-spin-button,
+form input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }

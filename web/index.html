@@ -7,10 +7,61 @@
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
           integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.9.0/css/all.css">
     <link rel="stylesheet" href="public/style.css">
 </head>
 <body>
 
+<nav class="nav navbar-dark bg-dark">
+    <span class="navbar-brand ml-2">Automate scanner v2</span>
+    <a href="https://cefadrom.com/" class="nav-item ml-auto nav-link btn-dark">By cefadrom</a>
+</nav>
+
+<div class="container py-3">
+
+    <a class="text-dark h3" id="toggle-settings" style="cursor:pointer;">
+        <i class="fas fa-chevron-down"></i> Edit settings
+    </a>
+
+    <form id="settings" class="collapse card card-body mt-3" onsubmit="return false;">
+
+        <div class="card-title font-weight-bold">DATABASE</div>
+        <p class="form-group card-text" id="settings-database">
+            <label class="d-block">
+                Type:
+                <select type="text" id="settings-database-type" class="form-control" required>
+                    <option value="mysql">MySql</option>
+                    <option value="mongo">MongoDB</option>
+                </select>
+            </label>
+        </p>
+
+        <div class="card-title font-weight-bold">SCAN</div>
+        <p class="form-group card-text">
+            <label class="d-block">
+                Cores: <input type="number" class="form-control" min="1" max="32" id="settings-scan-cores" required>
+            </label>
+        </p>
+
+        <div class="card-title font-weight-bold">SERVER</div>
+        <p class="form-group card-text">
+            <label class="d-block">
+                Port: <input type="number" class="form-control" min="0" max="65536" id="settings-server-port" required>
+            </label>
+        </p>
+
+        <p>
+            <input type="submit" class="btn btn-success" value="Save">
+            <input type="reset" class="btn btn-outline-danger" value="Cancel" id="settings-reset">
+        </p>
+
+    </form>
+
+    <p class="mt-3">
+        <input type="button" class="btn btn-primary" value="Start scan">
+    </p>
+
+</div>
 
 <script src="public/script.js"></script>
 
