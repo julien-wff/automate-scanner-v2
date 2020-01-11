@@ -11,13 +11,6 @@ const config = require('./config');
 // Core
 (async function () {
 
-    // Set window title
-    if (process.platform === 'win32') {
-        process.title = 'Automate scanner v2';
-    } else {
-        process.stdout.write('\x1b]2;Automate scanner v2\x1b\x5c');
-    }
-
     // Selecting database type
     let Db;
     if (config.dbType === 'sql') {
@@ -138,6 +131,7 @@ const config = require('./config');
 
     // Workers displays
     function displayStatus() {
+        // Compile the data
         if (!displayClock) displayClock = setInterval(displayStatus, 1000);
         let percentage = Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2;
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
@@ -147,34 +141,27 @@ const config = require('./config');
         } catch (e) {
             remainTime = '<unavailable>';
         }
-        try {   // progress bar throws error when a invalid data is provided
-            progressBar = displayBar();
-        } catch (e) {
-            progressBar = '';
-        }
-        console.clear();
-        console.log(`${progressBar}
-Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}
-Progression: ${percentage} %
-Time elapsed: ${ms(Date.now() - stats.startTime)}
-Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second
-Time remaining: ${remainTime}
-Pending DB saves: ${stats.pendingSave}
-Active queries: ${stats.activeQueries}
-Query errors: ${stats.errors}
-        `);
+
+        // Send the data
+        process.send({
+                type: 'progress', data: {
+                    percentage,
+                    text: [
+                        `Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`,
+                        `Progression: ${percentage} %`,
+                        `Time elapsed: ${ms(Date.now() - stats.startTime)}`,
+                        `Speed: ${Math.round(OPperSec * 1e1) / 1e1} flows / second`,
+                        `Time remaining: ${remainTime}`,
+                        `Pending DB saves: ${stats.pendingSave}`,
+                        `Active queries: ${stats.activeQueries}`,
+                        `Query errors: ${stats.errors}`
+                    ]
+                }
+            }
+        );
 
         if (stats.remainingFlows <= 0 && stats.pendingSave <= 0)
             processEnd();
-
-        function displayBar() {
-            let wSize = process.stdout.columns - 2;
-            let fullChars = Math.floor(wSize * percentage / 100);
-            let display = '[';
-            display += '#'.repeat(fullChars);
-            display += '-'.repeat(wSize - fullChars);
-            return display + ']';
-        }
 
     }
 
@@ -183,7 +170,7 @@ Query errors: ${stats.errors}
         for (let worker of workers) // Stop workers
             worker.disconnect();
         addInDB.send({ type: 'shutdown' }); // Stop the DB worker
-        console.log('\n\nProcess end !');
+        process.send({ type: 'end' });
         process.exit(0);
     }
 
