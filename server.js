@@ -1,8 +1,9 @@
 const express = require('express');
-const opn = require('opn');
+const app = express();
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
 const path = require('path');
 
-const app = express();
 const config = require('./config');
 
 app.get('/', function (req, res) {
@@ -11,6 +12,12 @@ app.get('/', function (req, res) {
 
 app.use('/public', express.static(path.join(__dirname, '/web/public/')));
 
-app.listen(config.server.port);
+io.on('connection', socket => {
+    console.log(`New connection with ID ${socket.id}`);
+    socket.emit('settings', config);
+});
 
-// opn(`http://localhost:${config.server.port}/`);
+server.listen(config.server.port);
+
+if (config.server.openBrowser)
+    require('opn')(`http://localhost:${config.server.port}/`);
