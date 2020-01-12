@@ -24,7 +24,9 @@ module.exports = {
 
     // Web server config
     server: {
-        port: 8080,   // The server port
-        openBrowser: false  // Open the browser when the server starts
+        // The server port
+        port: 8080,
+        // Open the browser when the server starts
+        openBrowser: false
     }
 };
