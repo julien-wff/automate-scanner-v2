@@ -49,9 +49,13 @@
             <label class="d-block">
                 Port: <input type="number" class="form-control" min="0" max="65535" id="settings-server-port" required>
             </label>
-            <label class="d-block">
-                <input type="checkbox" id="settings-server-browser">
-                Open browser
+            <label class="input-group">
+                <span class="input-group-prepend">
+                    <span class="input-group-text">
+                        <input type="checkbox" id="settings-server-browser">
+                    </span>
+                </span>
+                <span type="text" class="form-control" aria-label="Text input with checkbox">Open browser</span>
             </label>
         </p>
 
@@ -68,7 +72,8 @@
 
 </div>
 
-<div class="toast" style="position: fixed; top: 60px; right: 20px;" role="alert" aria-live="assertive" aria-atomic="true">
+<div class="toast" style="position: fixed; top: 60px; right: 20px;" role="alert" aria-live="assertive"
+     aria-atomic="true">
     <div class="toast-header">
         <strong class="mr-auto">Settings change</strong>
         <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
