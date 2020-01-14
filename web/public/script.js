@@ -92,13 +92,14 @@ function updateSettings() {
     changeDbType(_settings.dbType);
     $('#settings-scan-cores').val(_settings.cores);
     $('#settings-server-port').val(_settings.server.port);
-    $('#settings-server-browser').attr('checked', _settings.server.openBrowser);
+    $('#settings-server-browser').prop('checked', _settings.server.openBrowser);
 }
 
 // Get new settings
 function getEnteredSettings() {
     const dbSqlPassword = $('#settings-database-sql-password').val();
     const dbSqlUser = $('#settings-database-sql-user').val();
+    const serverOpenBrowser = $('#settings-server-browser').prop('checked');
     return {
         dbType: _settingsDbType.val() || _settings.dbType,
         mysql: {
@@ -115,7 +116,7 @@ function getEnteredSettings() {
         cores: $('#settings-scan-cores').val() || _settings.cores,
         server: {
             port: $('#settings-server-port').val() || _settings.server.port,
-            openBrowser: $('#settings-server-browser').attr('checked') || _settings.server.openBrowser
+            openBrowser: typeof serverOpenBrowser === 'boolean' ? serverOpenBrowser : _settings.server.openBrowser
         }
     };
 }
