@@ -1,6 +1,6 @@
 {
   "name": "automate-scanner-v2",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "main": "app.js",
   "license": "MIT",
   "author": "cefadrom",
@@ -9,13 +9,13 @@
     "web": "node server.js"
   },
   "dependencies": {
+    "better-opn": "^1.0.0",
     "express": "^4.17.1",
     "json-beautify": "^1.1.1",
     "mongodb": "^3.4.1",
     "ms": "^2.1.2",
     "mysql": "^2.17.1",
     "numeral": "^2.0.6",
-    "opn": "^6.0.0",
     "request": "^2.88.0",
     "socket.io": "^2.3.0",
     "utf8": "^3.0.0"

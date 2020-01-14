@@ -40,7 +40,7 @@ $('#toggle-settings').on('click', () => {
     $('#toggle-settings i').toggleClass('reverted');
 });
 $('#settings-reset').on('click', () => {
-    setTimeout(updateSettings, 100);
+    setTimeout(updateSettings, 20);
     $('#toggle-settings').trigger('click');
 });
 
@@ -53,7 +53,7 @@ _settingsDbType.on('change', () => {
 
 function changeDbType(type) {
     type = type || _settingsDbType.val() || 'sql';
-    _settingsDbType.value = type;
+    _settingsDbType.val(type);
     $('.settings-database-specific').remove();
     _settingsDbType.parent().after(generateDbSettings(type));
 }
@@ -123,10 +123,56 @@ function getEnteredSettings() {
 
 // Send new settings
 $('#settings').on('submit', function () {
-    console.log(getEnteredSettings());
     socket.emit('change-settings', getEnteredSettings());
     socket.once('settings-changed', args => {
-        console.log(args);
         sendToast('Settings change', args === true ? 'Settings changed successfully' : 'Settings change error');
     });
 });
+
+
+// ---------- START SCAN ----------
+
+let scanStarted = false;
+let progressBar;
+
+$('#start-scan-button').on('click', () => {
+    socket.emit('start-scan');
+    socket.once('scan-started', args => {
+        console.log('Scan :', args);
+        if (args === true)
+            startScan();
+    });
+});
+
+function startScan() {
+    if (scanStarted) return;
+    // Insert the HTML
+    $('#main-container').html(`
+<div class="row">
+    <div class="progress col-10 align-self-center px-0">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%" id="progress-bar"></div>
+    </div>
+    <div class="btn btn-outline-danger ml-auto" id="cancel-scan">Cancel</div>
+</div>
+    `);
+    // Set the variables
+    scanStarted = true;
+    progressBar = $('#progress-bar');
+    // Set the listeners
+    $('#cancel-scan').on('click', () => {
+        cancelScan();
+    });
+}
+
+function cancelScan() {
+    socket.emit('stop-scan');
+    progressBar
+        .removeClass(['progress-bar-striped', 'prohgress-bar'])
+        .addClass('bg-danger')
+        .text('Scan cancelled');
+    $('#cancel-scan')
+        .text('Back')
+        .on('click', () => {
+            window.location.reload();
+        })
+}
