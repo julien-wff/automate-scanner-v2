@@ -17,7 +17,7 @@
 
 ### Run - CLI
 
-- Configure the DB access and the options in the `config.js` file
+- Configure the DB access and the options in the `config.json` file
   - **If a Db with the same name exists, it will be deleted**
 - Start with `node app.js`
 

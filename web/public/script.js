@@ -107,7 +107,7 @@ function getEnteredSettings() {
         },
         mongo: {
             uri: $('#settings-database-mongo-uri').val() || _settings.mongo.uri,
-            options: {},
+            options: _settings.mongo.options,
             dbName: $('#settings-database-mongo-name').val() || _settings.mongo.dbName
         },
         cores: $('#settings-scan-cores').val() || _settings.cores,

@@ -4,6 +4,7 @@ const server = require('http').Server(app);
 const io = require('socket.io')(server);
 const path = require('path');
 const fs = require('fs');
+const jsonBeaufity = require('json-beautify');
 
 let config = require('./config');
 
@@ -29,9 +30,11 @@ if (config.server.openBrowser)
     require('opn')(`http://localhost:${config.server.port}/`);
 
 async function changeSettings(newSettings, socket) {
-    const oldConfig = fs.readFileSync('_config.js');
-    // TODO: write the changes in the config file
-    config = newSettings;
+    config = {
+        ...config,
+        ...newSettings
+    };
+    fs.writeFileSync('config.json', jsonBeaufity(config, null, 2, 20));
     socket.broadcast.emit('settings', config);
     socket.emit('settings-changed', true);
 }

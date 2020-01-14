@@ -1,0 +1,19 @@
+{
+  "dbType": "sql",
+  "mysql": {
+    "host": "localhost",
+    "user": "root",
+    "password": "123",
+    "dbName": "automate-scanner"
+  },
+  "mongo": {
+    "uri": "mongodb://localhost/",
+    "options": {},
+    "dbName": "automate-scanner"
+  },
+  "cores": "8",
+  "server": {
+    "port": "8080",
+    "openBrowser": false
+  }
+}
