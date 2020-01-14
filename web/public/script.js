@@ -97,12 +97,14 @@ function updateSettings() {
 
 // Get new settings
 function getEnteredSettings() {
+    const dbSqlPassword = $('#settings-database-sql-password').val();
+    const dbSqlUser = $('#settings-database-sql-user').val();
     return {
         dbType: _settingsDbType.val() || _settings.dbType,
         mysql: {
             host: $('#settings-database-sql-host').val() || _settings.mysql.host,
-            user: $('#settings-database-sql-user').val() || _settings.mysql.user,
-            password: $('#settings-database-sql-password').val() || _settings.mysql.password,
+            user: dbSqlUser === '' ? '' : dbSqlUser || _settings.mysql.user,
+            password: dbSqlPassword === '' ? '' : dbSqlPassword || _settings.mysql.password,
             dbName: $('#settings-database-sql-name').val() || _settings.mysql.dbName
         },
         mongo: {

@@ -3,7 +3,7 @@
   "mysql": {
     "host": "localhost",
     "user": "root",
-    "password": "123",
+    "password": "",
     "dbName": "automate-scanner"
   },
   "mongo": {
