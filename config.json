@@ -12,6 +12,7 @@
     "dbName": "automate-scanner"
   },
   "cores": "8",
+  "logging": true,
   "server": {
     "port": "8080",
     "openBrowser": false

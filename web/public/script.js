@@ -14,6 +14,7 @@ let _settings = {
         dbName: 'automate-scanner'
     },
     cores: 8,
+    logging: true,
     server: {
         port: 8080,
         openBrowser: false
@@ -93,6 +94,7 @@ function updateSettings() {
     $('#settings-scan-cores').val(_settings.cores);
     $('#settings-server-port').val(_settings.server.port);
     $('#settings-server-browser').prop('checked', _settings.server.openBrowser);
+    $('#settings-scan-logging').prop('checked', _settings.logging);
 }
 
 // Get new settings
@@ -100,6 +102,7 @@ function getEnteredSettings() {
     const dbSqlPassword = $('#settings-database-sql-password').val();
     const dbSqlUser = $('#settings-database-sql-user').val();
     const serverOpenBrowser = $('#settings-server-browser').prop('checked');
+    const scanLogging = $('#settings-scan-logging').prop('checked');
     return {
         dbType: _settingsDbType.val() || _settings.dbType,
         mysql: {
@@ -114,6 +117,7 @@ function getEnteredSettings() {
             dbName: $('#settings-database-mongo-name').val() || _settings.mongo.dbName
         },
         cores: $('#settings-scan-cores').val() || _settings.cores,
+        logging: typeof scanLogging === 'boolean' ? scanLogging : _settings.logging,
         server: {
             port: $('#settings-server-port').val() || _settings.server.port,
             openBrowser: typeof serverOpenBrowser === 'boolean' ? serverOpenBrowser : _settings.server.openBrowser

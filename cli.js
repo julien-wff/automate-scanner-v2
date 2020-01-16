@@ -1,5 +1,7 @@
 const { fork } = require('child_process');
 
+const config = require('./config');
+
 // Set window title
 if (process.platform === 'win32') {
     process.title = 'Automate scanner v2';
@@ -7,8 +9,13 @@ if (process.platform === 'win32') {
     process.stdout.write('\x1b]2;Automate scanner v2\x1b\x5c');
 }
 
-// Start core app
-const core = fork('app.js');
+// Start core app (silent if logging)
+const core = fork('app.js', [], { silent: config.logging });
+
+// Logging system
+if (config.logging) {
+    require('./utils/logger')(core);
+}
 
 // On core message
 core.on('message', message => {
