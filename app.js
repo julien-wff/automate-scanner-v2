@@ -32,7 +32,7 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 100);
+    flowList = flowList.slice(0, 1000);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
@@ -144,7 +144,8 @@ const config = require('./config');
 
         // Send the data
         process.send({
-                type: 'progress', data: {
+                type: 'progress',
+                data: {
                     percentage,
                     text: [
                         `Flows stored: ${stats.totalFlowsCount - stats.remainingFlows}/${stats.totalFlowsCount}`,
@@ -164,6 +165,13 @@ const config = require('./config');
             processEnd();
 
     }
+
+    process.on('message', message => {
+        const { type } = message;
+        if (type === 'stop') {
+            processEnd();
+        }
+    });
 
     function processEnd() {
         clearTimeout(displayClock); // Stop the display
