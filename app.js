@@ -135,7 +135,7 @@ const config = require('./config');
         if (!displayClock) displayClock = setInterval(displayStatus, 1000);
         let percentage = Math.round((stats.totalFlowsCount - stats.remainingFlows) / stats.totalFlowsCount * 100 * 1e2) / 1e2;
         let OPperSec = (stats.totalFlowsCount - stats.remainingFlows) / (Date.now() - stats.startTime) * 1000;
-        let remainTime, progressBar;
+        let remainTime;
         try {   // ms can throw an error sometimes
             remainTime = ms(Math.round((1 / OPperSec) * stats.remainingFlows * 1000 * 10000) / 10000);
         } catch (e) {
