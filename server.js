@@ -7,6 +7,7 @@ const fs = require('fs');
 const jsonBeaufity = require('json-beautify');
 
 let _config = require('./config');
+let status = 'idle';
 
 app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, '/web/index.html'));
@@ -14,8 +15,8 @@ app.get('/', function (req, res) {
 
 app.use('/public', express.static(path.join(__dirname, '/web/public/')));
 
-io.on('connection', socket => {
-    socket.emit('settings', _config);
+io.on('connection', socket => { // Registering socket events
+    socket.emit('init', { config: _config, status });
     socket.on('change-settings', args => {
         changeSettings(args, socket)
             .then(() => {

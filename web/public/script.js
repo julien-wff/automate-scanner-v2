@@ -21,9 +21,11 @@ let _settings = {
     }
 };
 
+let status;
 const socket = io();
 socket.on('settings', data => {
-    _settings = data;
+    _settings = data.config;
+    status = data.status;
     updateSettings();
     sendToast('Settings changed', 'Settings are reloaded from the config');
 });
@@ -136,7 +138,6 @@ $('#settings').on('submit', function () {
 
 // ---------- START SCAN ----------
 
-let scanStarted = false;
 let progressBar;
 
 $('#start-scan-button').on('click', () => {
@@ -149,7 +150,7 @@ $('#start-scan-button').on('click', () => {
 });
 
 function startScan() {
-    if (scanStarted) return;
+    if (status !== 'idle') return;
     // Insert the HTML
     $('#main-container').html(`
 <div class="row">
@@ -160,7 +161,7 @@ function startScan() {
 </div>
     `);
     // Set the variables
-    scanStarted = true;
+    status = 'start-scan';
     progressBar = $('#progress-bar');
     // Set the listeners
     $('#cancel-scan').on('click', () => {
