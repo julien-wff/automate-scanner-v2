@@ -11,6 +11,13 @@ const config = require('./config');
 // Core
 (async function () {
 
+    // Trigger process end request
+    process.on('message', message => {
+        process.send({ type: 'end' });
+        if (message.type === 'stop')
+            process.exit(0);
+    });
+
     // Selecting database type
     let Db;
     if (config.dbType === 'sql') {
@@ -32,7 +39,7 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 1000);
+    flowList = flowList.slice(0, 500);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
@@ -166,9 +173,10 @@ const config = require('./config');
 
     }
 
+    // Change the sop trigger
+    process.removeAllListeners('message');
     process.on('message', message => {
-        const { type } = message;
-        if (type === 'stop') {
+        if (message.type === 'stop') {
             processEnd();
         }
     });

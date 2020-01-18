@@ -9,6 +9,9 @@ const { fork } = require('child_process');
 
 let _config = require('./config');
 let status = 'idle';
+let _logs = '';
+
+console.log(`Starting server with PID ${process.pid}`);
 
 app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, '/web/index.html'));
@@ -17,7 +20,7 @@ app.get('/', function (req, res) {
 app.use('/public', express.static(path.join(__dirname, '/web/public/')));
 
 io.on('connection', socket => { // Registering socket events
-    socket.emit('init', { config: _config, status });
+    socket.emit('init', { config: _config, status, logs: _logs });
     socket.on('change-settings', args => {
         changeSettings(args, socket)
             .then(() => {
@@ -27,6 +30,11 @@ io.on('connection', socket => { // Registering socket events
     socket.on('start-scan', () => {
         startScan(socket);
     });
+    socket.on('stop-scan', () => {
+        cancelScan();
+    });
+
+
 });
 
 server.listen(_config.server.port);
@@ -48,13 +56,17 @@ async function changeSettings(newSettings, socket) {
 }
 
 
-let _core, _logs = '';
+let _coreStopped = false;
+let _core;
 
-function startScan(socket) {
+function startScan() {
 
     _core = fork('./app.js', [], { silent: true });
-    socket.emit('scan-started', true);
-    let coreStopped = false;
+    console.log(`Starting scan with PID ${_core.pid}`);
+    io.emit('start-scan');
+    status = 'scanning';
+    _logs = '';
+    _coreStopped = false;
 
     _core.stdout.on('data', chunk => {
         _logs += chunk.toString();
@@ -66,22 +78,27 @@ function startScan(socket) {
         if (type === 'progress' && data) {
             io.emit('status', data);
         } else if (type === 'end') {
-            scanEnd();
             _core.disconnect();
+            scanEnd(0);
         }
     });
 
     _core.on('exit', code => {
-        scanEnd(code, coreStopped);
-    });
-
-    socket.on('stop-scan', () => {
-        _core.send({ type: 'stop' });
-        coreStopped = true;
+        if (code !== 0) scanEnd(code);
     });
 
 }
 
+function cancelScan() {
+    if (_core === undefined || _coreStopped) return;
+    console.log('Cancelling scan...');
+    _core.send({ type: 'stop' });
+    _coreStopped = true;
+}
+
 function scanEnd(code = 0) {
-    io.emit('end', code);
+    console.log(`Scan ended with exit code ${code}${_coreStopped ? ' (manually stopped)' : ''}`);
+    _core = undefined;
+    status = 'idle';
+    io.emit('end', { code, stopped: _coreStopped });
 }

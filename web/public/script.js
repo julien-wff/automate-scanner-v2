@@ -21,16 +21,16 @@ let _settings = {
     }
 };
 
-let status;
+let _status;
 const socket = io();
 socket.on('init', data => {
     _settings = data.config;
-    status = data.status;
-    if (status === 'idle') {
+    _status = data.status;
+    if (_status === 'idle') {
         updateSettings();
         sendToast('Settings loaded', 'Settings are loaded from the config');
-    } else if (status === 'scanning')
-        startScan();
+    } else if (_status === 'scanning')
+        startScan(data.logs);
 });
 
 function sendToast(header, message, delay = 5000) {
@@ -43,8 +43,10 @@ function sendToast(header, message, delay = 5000) {
 
 socket.on('settings', data => {
     _settings = data;
-    updateSettings();
-    sendToast('Settings changed', 'Settings are reloaded from the config');
+    if (_status === 'idle') {
+        updateSettings();
+        sendToast('Settings changed', 'Settings are reloaded from the config');
+    }
 });
 
 // Manage settings section visibility
@@ -151,14 +153,14 @@ let progressBar;
 
 $('#start-scan-button').on('click', () => {
     socket.emit('start-scan');
-    socket.once('scan-started', args => {
-        console.log('Scan :', args);
-        if (args === true)
-            startScan();
-    });
 });
 
-function startScan() {
+socket.on('start-scan', () => {
+    startScan();
+});
+
+
+function startScan(logs) {
     // Insert the HTML
     $('#main-container').html(`
 <!-- Nav bar -->
@@ -172,7 +174,7 @@ function startScan() {
     <!-- Scan progress -->
     <div class="col-md-6 py-3">
         <span class="text-uppercase font-weight-bold d-block">Scan progress</span>
-        <span class="d-block" id="scan-progress-area"></span>
+        <span class="d-block" id="scan-progress-area">Initializing</span>
     </div>
     <!-- Scan progress -->
     <div class="col-md-6 py-3">
@@ -183,36 +185,41 @@ function startScan() {
     `);
     // Set the variables
     progressBar = $('#progress-bar');
+    const logsArea = $('#logs-area');
+    // Put the logs if sent
+    if (logs) logsArea.html(logs.replace(/\n/g, '<br>'));
     // Set the listeners
     $('#cancel-scan').on('click', () => {
-        endScan(true);
+        socket.emit('stop-scan');
     });
     socket.on('logs', args => {
-        $('#logs-area').html(args.replace(/\n/g, '<br>'));
+        logsArea.html(args.replace(/\n/g, '<br>'));
     });
     socket.on('status', args => {
         $('#scan-progress-area').html(args.text.join('<br>'));
         $('#progress-bar').css('width', `${args.percentage}%`);
     });
-    socket.on('end', (code, stopped) => {
+    socket.on('end', ({ code, stopped }) => {
         sendToast('Scan stopped', `Scan ended with an exit code ${code}`);
         endScan(stopped, code !== 0);
     });
 }
 
+
+// ---------- SCAN END ----------
+
 function endScan(stopped = false, error = false) {
     const cancelScanButton = $('#cancel-scan');
     progressBar
-        .removeClass(['progress-bar-striped', 'prohgress-bar']);
+        .removeClass('progress-bar-striped');
     if (stopped) {
-        socket.emit('stop-scan');
         progressBar
             .text('Scan cancelled')
-            .addClass(['bg-warning']);
+            .addClass('bg-warning');
     }
     if (error) {
         progressBar
-            .addClass(['bg-danger']);
+            .addClass('bg-danger');
     }
     if (!stopped && !error) {
         progressBar
@@ -222,7 +229,10 @@ function endScan(stopped = false, error = false) {
             .addClass('btn-outline-success');
     }
 
+    _status = 'end';
+
     cancelScanButton
+        .off('click')
         .text('Back')
         .on('click', () => {
             window.location.reload();
