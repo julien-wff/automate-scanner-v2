@@ -1,8 +1,8 @@
 const dateFormat = require('./date-format');
 const fs = require('fs');
-const { Writable } = require('stream');
+const { Writable, Transform } = require('stream');
 
-module.exports = (core) => {
+module.exports = (core, logBack) => {
 
     const logFolder = './logs/';
     let logPath;
@@ -13,22 +13,39 @@ module.exports = (core) => {
     logPath = logFolder + dateFormat('log [datetime].log', true);
 
     const writeStream = fs.createWriteStream(logPath);
+    const transformInfo = new Transform({
+        transform(chunk, encoding, callback) {
+            let log = chunk.toString().trim();
+            if (logBack) console.log(log);   // Log the logs (lol)
+            const prefix = dateFormat('[year]-[month]-[day] [hour]:[min]:[sec].[ms] INFO ');
+            if (log.split(/\r?\n|\r/g).length > 0) {  // If multiples lines at once
+                log = log.replace(/\r?\n|\r/g, `\n${prefix}`);
+            }
+            callback(null, `${prefix + log}\n`);
+        }
+    });
+    const transformError = new Transform({
+        transform(chunk, encoding, callback) {
+            let log = chunk.toString().trim();
+            if (logBack) console.error(log);   // Log the logs (lol)
+            const prefix = dateFormat('[year]-[month]-[day] [hour]:[min]:[sec].[ms] ERROR ');
+            if (log.split(/\r?\n|\r/g).length > 0) {  // If multiples lines at once
+                log = log.replace(/\r?\n|\r/g, `\n${prefix}`);
+            }
+            callback(null, `${prefix + log}\n`);
+        }
+    });
     const writeLogs = new Writable({
         write(chunk, encoding, callback) {
-            const log = chunk.toString().trim();
-            const date = dateFormat('[year]-[month]-[day] [hour]:[min]:[sec].[ms] INFO ');
-            if (log.split(/\n/g).length > 0) {  // If multiples lines at once
-                log.split(/\n/g).join(`\n${date}`);
-            }
-            console.log(log);   // Log the logs (lol)
             writeStream.write(  // Write the logs
-                `${date + log}\n`,
+                chunk,
                 () => {
                     callback();
                 });
         }
     });
 
-    core.stdout.pipe(writeLogs);
+    core.stdout.pipe(transformInfo).pipe(writeLogs);
+    core.stderr.pipe(transformError).pipe(writeLogs);
 
 };

@@ -14,7 +14,7 @@ const core = fork('app.js', [], { silent: config.logging });
 
 // Logging system
 if (config.logging) {
-    require('./utils/logger')(core);
+    require('./utils/logger')(core, true);
 }
 
 // On core message
