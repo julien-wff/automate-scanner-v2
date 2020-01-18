@@ -55,7 +55,7 @@ const config = require('./config');
     // Setup module
     const addInDB = fork('./tasks/save-db.js', [], { detached: true });
     await new Promise(resolve => {
-        addInDB.on('message', message => {
+        addInDB.once('message', message => {
             if (message.type === 'db-ready') {
                 console.log('Saving DB ready');
                 resolve();
@@ -67,7 +67,6 @@ const config = require('./config');
             stats.pendingSave--;
             displayStatus();
         }
-
     });
 
 
@@ -110,7 +109,7 @@ const config = require('./config');
             workers[workerId].on('message', message => {
                 if (message.status === 'complete' && message.data) {    // When the worker has finished to query the data
                     saveData(message.data); // Save the data to the DB
-                    stats.remainingFlows--; // Decrease the remaning flows count
+                    stats.remainingFlows--; // Decrease the remaining flows count
                     stats.activeQueries--;  // Indicates that a query is stopped
                     queryFlow();            // Start querying
                     displayStatus();        // Update the display
