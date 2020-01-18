@@ -62,8 +62,15 @@ let _core;
 function startScan() {
 
     _core = fork('./app.js', [], { silent: true });
+
+    // Logging system
+    if (_config.logging) {
+        require('./utils/logger')(_core);
+    }
+
     console.log(`Starting scan with PID ${_core.pid}`);
     io.emit('start-scan');
+
     status = 'scanning';
     _logs = '';
     _coreStopped = false;
