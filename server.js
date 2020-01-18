@@ -5,6 +5,7 @@ const io = require('socket.io')(server);
 const path = require('path');
 const fs = require('fs');
 const jsonBeaufity = require('json-beautify');
+const { fork } = require('child_process');
 
 let _config = require('./config');
 let status = 'idle';
@@ -47,6 +48,38 @@ async function changeSettings(newSettings, socket) {
 }
 
 
+let _core, _logs = '';
+
 function startScan(socket) {
+
+    _core = fork('./app.js', [], { silent: true });
     socket.emit('scan-started', true);
+
+    _core.stdout.on('data', chunk => {
+        _logs += chunk.toString();
+        io.emit('logs', _logs);
+    });
+
+    _core.on('message', message => {
+        const { type, data } = message;
+        if (type === 'progress' && data) {
+            io.emit('status', data);
+        } else if (type === 'end') {
+            scanEnd();
+            _core.disconnect();
+        }
+    });
+
+    _core.on('exit', code => {
+        scanEnd(code);
+    });
+
+    socket.on('stop-scan', () => {
+        _core.send({ type: 'stop' });
+    });
+
+}
+
+function scanEnd(code = 0) {
+    io.emit('end', code);
 }

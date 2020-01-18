@@ -153,11 +153,24 @@ function startScan() {
     if (status !== 'idle') return;
     // Insert the HTML
     $('#main-container').html(`
+<!-- Nav bar -->
 <div class="row">
     <div class="progress col-10 align-self-center px-0">
         <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%" id="progress-bar"></div>
     </div>
     <div class="btn btn-outline-danger ml-auto" id="cancel-scan">Cancel</div>
+</div>
+<div class="row">
+    <!-- Scan progress -->
+    <div class="col-md-6 py-3">
+        <span class="text-uppercase font-weight-bold d-block">Scan progress</span>
+        <span class="d-block" id="scan-progress-area"></span>
+    </div>
+    <!-- Scan progress -->
+    <div class="col-md-6 py-3">
+        <span class="text-uppercase font-weight-bold d-block">Logs</span>
+        <span class="d-block" id="logs-area"></span>
+    </div>
 </div>
     `);
     // Set the variables
@@ -165,19 +178,46 @@ function startScan() {
     progressBar = $('#progress-bar');
     // Set the listeners
     $('#cancel-scan').on('click', () => {
-        cancelScan();
+        endScan(true);
+    });
+    socket.on('logs', args => {
+        $('#logs-area').html(args.replace(/\n/g, '<br>'));
+    });
+    socket.on('status', args => {
+        $('#scan-progress-area').html(args.text.join('<br>'));
+        $('#progress-bar').css('width', `${args.percentage}%`);
+    });
+    socket.on('end', code => {
+        sendToast('Scan stopped', `Scan ended with an exit code ${code}`);
+        endScan(false, code !== 0);
     });
 }
 
-function cancelScan() {
-    socket.emit('stop-scan');
+function endScan(stopped = false, error = false) {
+    const cancelScanButton = $('#cancel-scan');
     progressBar
-        .removeClass(['progress-bar-striped', 'prohgress-bar'])
-        .addClass('bg-danger')
-        .text('Scan cancelled');
-    $('#cancel-scan')
+        .removeClass(['progress-bar-striped', 'prohgress-bar']);
+    if (stopped) {
+        socket.emit('stop-scan');
+        progressBar
+            .text('Scan cancelled')
+            .addClass(['bg-warning']);
+    }
+    if (error) {
+        progressBar
+            .addClass(['bg-danger']);
+    }
+    if (!stopped && !error) {
+        progressBar
+            .addClass('bg-success');
+        cancelScanButton
+            .removeClass('btn-outline-danger')
+            .addClass('btn-outline-success');
+    }
+
+    cancelScanButton
         .text('Back')
         .on('click', () => {
             window.location.reload();
-        })
+        });
 }
