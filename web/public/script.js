@@ -165,10 +165,10 @@ function startScan(logs) {
     $('#main-container').html(`
 <!-- Nav bar -->
 <div class="row">
-    <div class="progress col-10 align-self-center px-0">
+    <div class="progress col-10 align-self-center px-0 mx-sm-0 mx-3">
         <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%" id="progress-bar"></div>
     </div>
-    <div class="btn btn-outline-danger ml-auto" id="cancel-scan">Cancel</div>
+    <div class="btn btn-outline-danger ml-sm-auto mr-sm-0 mx-auto mt-sm-auto mt-2" id="cancel-scan">Cancel</div>
 </div>
 <div class="row">
     <!-- Scan progress -->
