@@ -80,6 +80,11 @@ function startScan() {
         io.emit('logs', _logs);
     });
 
+    _core.stderr.on('data', chunk => {
+        _logs += `<span class="text-danger">${chunk.toString()}</span>`;
+        io.emit('logs', _logs);
+    });
+
     _core.on('message', message => {
         const { type, data } = message;
         if (type === 'progress' && data) {
