@@ -23,11 +23,14 @@ let _settings = {
 
 let status;
 const socket = io();
-socket.on('settings', data => {
+socket.on('init', data => {
     _settings = data.config;
     status = data.status;
-    updateSettings();
-    sendToast('Settings changed', 'Settings are reloaded from the config');
+    if (status === 'idle') {
+        updateSettings();
+        sendToast('Settings loaded', 'Settings are loaded from the config');
+    } else if (status === 'scanning')
+        startScan();
 });
 
 function sendToast(header, message, delay = 5000) {
@@ -37,6 +40,12 @@ function sendToast(header, message, delay = 5000) {
 }
 
 // ---------- MANAGE SETTINGS CHANGE ----------
+
+socket.on('settings', data => {
+    _settings = data;
+    updateSettings();
+    sendToast('Settings changed', 'Settings are reloaded from the config');
+});
 
 // Manage settings section visibility
 $('#toggle-settings').on('click', () => {
@@ -150,7 +159,6 @@ $('#start-scan-button').on('click', () => {
 });
 
 function startScan() {
-    if (status !== 'idle') return;
     // Insert the HTML
     $('#main-container').html(`
 <!-- Nav bar -->
@@ -174,7 +182,6 @@ function startScan() {
 </div>
     `);
     // Set the variables
-    status = 'start-scan';
     progressBar = $('#progress-bar');
     // Set the listeners
     $('#cancel-scan').on('click', () => {
@@ -187,9 +194,9 @@ function startScan() {
         $('#scan-progress-area').html(args.text.join('<br>'));
         $('#progress-bar').css('width', `${args.percentage}%`);
     });
-    socket.on('end', code => {
+    socket.on('end', (code, stopped) => {
         sendToast('Scan stopped', `Scan ended with an exit code ${code}`);
-        endScan(false, code !== 0);
+        endScan(stopped, code !== 0);
     });
 }
 

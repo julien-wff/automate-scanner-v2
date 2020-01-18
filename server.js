@@ -54,6 +54,7 @@ function startScan(socket) {
 
     _core = fork('./app.js', [], { silent: true });
     socket.emit('scan-started', true);
+    let coreStopped = false;
 
     _core.stdout.on('data', chunk => {
         _logs += chunk.toString();
@@ -71,11 +72,12 @@ function startScan(socket) {
     });
 
     _core.on('exit', code => {
-        scanEnd(code);
+        scanEnd(code, coreStopped);
     });
 
     socket.on('stop-scan', () => {
         _core.send({ type: 'stop' });
+        coreStopped = true;
     });
 
 }
