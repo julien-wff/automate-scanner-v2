@@ -37,7 +37,9 @@ io.on('connection', socket => { // Registering socket events
 
 });
 
-server.listen(_config.server.port);
+server.listen(_config.server.port, () => {
+    console.log(`Server listening on port ${_config.server.port}`);
+});
 
 if (_config.server.openBrowser)
     require('better-opn')(`http://localhost:${_config.server.port}/`);
