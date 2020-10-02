@@ -39,7 +39,6 @@ const config = require('./config');
 
     // Querying the flow list
     let flowList = await getFlowList();
-    flowList = flowList.slice(0, 500);
     let stats = {
         totalFlowsCount: flowList.length,
         remainingFlows: flowList.length,
